@@ -8,7 +8,10 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-import time
+import sqlite3
+import csv
+from time import sleep
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -18,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ui.toolButton.clicked.connect(self.close)
         self.ui.toolButton_2.clicked.connect(self.check_address)
-
+        self.ui.pushButton.clicked.connect(self.scrape_butai)
         self.list_model = QtCore.QStringListModel()
     # tikrinam adresa
     def check_address(self):
@@ -68,12 +71,12 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             driver.get(url)
             driver.maximize_window()
-            time.sleep(2)  
+            sleep(2)  
 
             try:
                 mygtukas = driver.find_element(By.CLASS_NAME, 'fc-button-label')
                 mygtukas.click()
-                time.sleep(1)
+                sleep(1)
             except:
                 pass  
 
@@ -82,7 +85,7 @@ class MainWindow(QtWidgets.QMainWindow):
             total_price = 0.0
 
             while has_next:
-                time.sleep(2)
+                sleep(2)
                 soup = BeautifulSoup(driver.page_source, 'html.parser')
                 leaflet_items = soup.select('[id^="unit-"]')
 
@@ -97,7 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 try:
                     next_btn = driver.find_element(By.CLASS_NAME, 'pagerNextPage')
                     next_btn.click()
-                    time.sleep(2)
+                    sleep(2)
                 except Exception as e:
                     has_next = False  
 
@@ -112,7 +115,62 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.listWidget.clear()
             self.ui.listWidget.addItem(f"Error: {str(e)}")
             driver.quit()
+    def scrape_butai(self):
+        driver = webdriver.Chrome()
+        pagrindinis_url = "https://elenta.lt"
+        driver.get(pagrindinis_url)
+        driver.maximize_window()
+        sleep(2)
 
+        mygtukas = driver.find_element(By.CLASS_NAME, 'fc-button-label')
+        mygtukas.click()
+        sleep(1)
+
+        mygtukas = driver.find_element(By.CSS_SELECTOR, 'a[href="/skelbimai/nt/butai"]')
+        mygtukas.click()
+
+        nustatymai = Options()
+        nustatymai.add_argument('--headless')
+
+        data = []
+
+        has_next = True
+        while has_next:
+            sleep(2)
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            leaflet_items = soup.select('[id^="unit-"]')
+
+            for item in leaflet_items:
+                name_el = item.find('h3', class_='ad-hyperlink')
+                name = name_el.text.strip() if name_el else 'N/A'
+
+                price_el = item.find('span', class_='price-box')
+                price = price_el.text.strip() if price_el else 'N/A'
+
+                location_el = item.find('span', class_='location-box')
+                location = location_el.text.strip() if location_el else 'N/A'
+
+                data.append({
+                    'name': name,
+                    'price': price,
+                    'location': location
+                })
+            try:
+                next_btn = driver.find_element(By.CLASS_NAME, 'pagerNextPage')
+                next_btn.click()
+                sleep(2)  
+            except Exception as e:
+                # print("No more pages")
+                has_next = False 
+
+        with open('data.csv', 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['name', 'price', 'location'])
+            writer.writeheader()
+            writer.writerows(data)
+
+        # print("Done!")
+        sleep(10)
+        driver.quit()    
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
