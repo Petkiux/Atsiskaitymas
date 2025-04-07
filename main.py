@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.toolButton_2.clicked.connect(self.check_address)
 
         self.list_model = QtCore.QStringListModel()
-
+    # tikrinam adresa
     def check_address(self):
         address = self.ui.textEdit.toPlainText().strip()
 
@@ -42,12 +42,13 @@ class MainWindow(QtWidgets.QMainWindow):
             response = requests.head(address, timeout=5)
             if response.status_code == 200:
                 self.ui.listWidget_2.addItem(" Galiojantis elenta.lt puslapis")
+                #jei adresas tinka leidziam scrape
                 self.scrape_category(address)
             else:
                 self.ui.listWidget_2.addItem(f" Puslapis neegzistuoja (Kodas: {response.status_code})")
         except requests.RequestException as e:
             self.ui.listWidget_2.addItem(f" Klaida jungiantis: {str(e)}")
-    
+    # url sintakses tikrinimas
     def is_valid_url(self, url):
         regex = re.compile(
             r'^(https?://)?'                   
@@ -57,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
             re.IGNORECASE
         )
         return re.match(regex, url) is not None
-    
+    #scrapinimo dalis
     def scrape_category(self, url):
     
         options = Options()
@@ -101,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     has_next = False  
 
             driver.quit()
-
+            
             self.ui.listWidget.clear()
             self.ui.listWidget.addItem(f"Iš viso skelbimu: {ad_count}")
             self.ui.listWidget.addItem(f"Bendra Suma: {total_price:.2f} €")
@@ -111,6 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.listWidget.clear()
             self.ui.listWidget.addItem(f"Error: {str(e)}")
             driver.quit()
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
